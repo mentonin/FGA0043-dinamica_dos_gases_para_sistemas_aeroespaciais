@@ -1,0 +1,18 @@
+# Calculates temperature after heat addition
+expanded_temp = flows2[-1].temperature
+heated_temp = expanded_temp + delta_temp
+
+# Calculates Mach number after heat addition
+# Part of Equation (3.81) @anderson2021 that doesn't depend on the new Mach number
+const_part = (
+    np.sqrt(heated_temp / expanded_temp)
+    * expanded_mach
+    / (1 + flows2[-1].fluid.gamma * expanded_mach * expanded_mach)
+)
+# Solves Equation (3.81) @anderson2021 (modified) for the new Mach number
+heated_mach = root_scalar(
+    lambda M: const_part - M / (1 + flows2[-1].fluid.gamma * M * M),
+    bracket=[1, 0],
+    method="brentq",
+).root
+print(f"New Mach number: {heated_mach:.4}")

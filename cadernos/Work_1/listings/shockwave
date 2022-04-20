@@ -1,0 +1,35 @@
+def _shockwave(self, beta) -> Flow:
+    """
+    Calculates flow properties after an oblique shockwave.
+    Uses equations (9.13) through (9.18) @anderson2017.
+
+    Parameters:
+    beta: oblique angle of the shockwave [rad]
+
+    Returns:
+    The Flow object after the shockwave
+    """
+
+    # Checks shockwave is valid (supersonic and positive theta)
+    # Maybe subsonic flow could be accepted, and spit a supersonic flow?
+    if (self.mach < 1) or ((theta := self.velocity_deflection(beta)) <= 0):
+        return Flow(np.nan, np.nan, np.nan, np.nan, self.fluid)
+
+    gamma = self.fluid.gamma
+
+    # Equation (9.13) @anderson2017
+    M_n_1 = self.mach * np.sin(beta)
+    M_n_1_sq = M_n_1 * M_n_1
+    # Equation (9.14) @anderson2017 (modified)
+    M_n_2 = np.sqrt((2 + (gamma - 1) * M_n_1_sq) / (2 * gamma * M_n_1_sq - (gamma - 1)))
+    # Equation (9.15) @anderson2017
+    rho_2 = self.density * (gamma + 1) * M_n_1_sq / (2 + (gamma - 1) * M_n_1_sq)
+    # Equation (9.16) @anderson2017
+    p_2 = self.pressure * (1 + 2 * gamma * (M_n_1_sq - 1) / (gamma + 1))
+    # Equation (9.17) @anderson2017
+    T_2 = self.temperature * p_2 * self.density / (self.pressure * rho_2)
+    # Equation (9.18) @anderson2017
+    M_2 = M_n_2 / np.sin(beta - theta)
+
+    flow_2 = Flow(p_2, M_2, T_2, rho_2, self.fluid)
+    return flow_2

@@ -1,0 +1,3 @@
+# Calculates throat semi-area
+D_throat = D / area_mach(heated_mach, flows[-1].fluid.gamma)
+print(f"Throat area: {D_throat}")

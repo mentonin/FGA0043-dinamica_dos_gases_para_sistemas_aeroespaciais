@@ -1,0 +1,7 @@
+Flow after expansion: Flow(
+	Pressure: 2.013e+05
+	Mach: 0.161
+	Temperature: 603.5
+	Density: 1.162
+	fluid: Fluid(R=287.058, gamma=1.4)
+)

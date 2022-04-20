@@ -1,0 +1,12 @@
+def area_mach(M: float, gamma: float) -> float:
+    """
+    Calculates the ratio A / A* in isentropic quasi-one-dimensional flow.
+    Uses Equation (10.32) @anderson2017.
+
+    Parameters:
+    M: Mach number
+    gamma: Specific heat ratio
+    """
+    g_ratio = (gamma + 1) / (gamma - 1)
+    # Equation (10.32) @anderson2017 (modified)
+    return (2 / (gamma + 1) + M * M / g_ratio) ** (g_ratio / 2) / M

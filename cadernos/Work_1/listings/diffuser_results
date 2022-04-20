@@ -1,0 +1,21 @@
+# Gets and prints all the solution values
+betas = sol_weak.x
+assert np.all(0 < betas) and np.all(betas < np.pi / 2)
+
+p0_eff = 1 - sol_weak.fun
+assert 0 < p0_eff < 1
+
+print(f"Efficiency = {p0_eff:.4}")
+print()
+
+# Stores flow states into a list
+flows = [flow_inf]
+for n, beta in enumerate(betas):
+    print(f"beta_{n+1}:  {np.rad2deg(beta)}")
+    print(f"theta_{n+1}: {np.rad2deg(flows[-1].velocity_deflection(beta))}")
+    flows.append(flows[-1].shockwave(beta))
+    print(f"Flow_{n+1}:", flows[-1], "\n")
+flows.append(flows[-1].shockwave(np.pi / 2))
+print(f"Flow_out: {flows[-1]}")
+# Garbage Collection
+gc.collect()

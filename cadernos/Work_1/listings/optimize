@@ -1,0 +1,17 @@
+# Finds minimum beta values, aka beta when theta = 0
+min_beta_1 = root_scalar(flow_inf.velocity_deflection, x0=0.1, x1=0.11).root
+assert 0 < min_beta_1 < np.pi / 2
+
+# Initial guess based on minimum beta angle (scaled to avoid evaluating on the boundary)
+initial_betas = (min_beta_1 * 1.01, min_beta_1 * 1.01)
+
+print("Solving...")
+# Minimizes the total pressure efficiency loss using a descent algorithm
+sol_weak = minimize(
+    lambda betas: 1 - nShock_p0_eff(betas, flow_inf),
+    initial_betas,
+    method="SLSQP",
+    options={"disp": True},
+)
+print("Done!")
+print(f"Solution: {sol_weak.x}")

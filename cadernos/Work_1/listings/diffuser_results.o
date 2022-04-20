@@ -1,0 +1,29 @@
+Efficiency = 0.7437
+
+beta_1:  32.21629364825329
+theta_1: 14.976701128986543
+Flow_1: Flow(
+	Pressure: 2.115e+04
+	Mach: 2.256
+	Temperature: 300.6
+	Density: 0.2451
+	fluid: Fluid(R=287.058, gamma=1.4)
+) 
+
+beta_2:  45.14954292171187
+theta_2: 18.814742838551123
+Flow_2: Flow(
+	Pressure: 5.959e+04
+	Mach: 1.507
+	Temperature: 417.1
+	Density: 0.4977
+	fluid: Fluid(R=287.058, gamma=1.4)
+) 
+
+Flow_out: Flow(
+	Pressure: 1.48e+05
+	Mach: 0.6986
+	Temperature: 552.7
+	Density: 0.9328
+	fluid: Fluid(R=287.058, gamma=1.4)
+)

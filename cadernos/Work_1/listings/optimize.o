@@ -1,0 +1,8 @@
+Solving...
+Optimization terminated successfully    (Exit mode 0)
+            Current function value: 0.2563475732605983
+            Iterations: 7
+            Function evaluations: 24
+            Gradient evaluations: 7
+Done!
+Solution: [0.5622804  0.78800818]

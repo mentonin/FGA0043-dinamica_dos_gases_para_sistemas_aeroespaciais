@@ -1,0 +1,13 @@
+# Calculates Mach number using the area-Mach relation
+# Calculates virtual throat
+D_virtual = D_entrance / area_mach(flows2[-1].mach, flows2[-1].fluid.gamma)
+# Solves area-Mach relation for the new Mach number
+expanded_mach = root_scalar(
+    lambda M: area_mach(M, flows2[-1].fluid.gamma) - D / D_virtual,
+    bracket=[1, 1e-2],
+    method="brentq",
+).root
+
+# Appends new Flow to the list
+flows2.append(Flow.from_total_values(p0, expanded_mach, T0, rho0, flows2[-1].fluid))
+print("Flow after expansion:", flows2[-1])

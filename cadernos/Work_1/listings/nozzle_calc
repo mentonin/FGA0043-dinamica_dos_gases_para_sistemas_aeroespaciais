@@ -1,0 +1,27 @@
+nozzles_flows = np.empty([len(nozzle_curves), len(x)], Flow)
+p0_nozzle, T0_nozzle, rho0_nozzle = flows2[-1].total_values()
+for n, curve in enumerate(nozzle_curves):
+    # Calculates the Mach number across the nozzle.
+    crit_index = np.argmin(curve[1])
+    D_crit = curve[1, crit_index]
+    crit_x = curve[0, crit_index]
+    machs = np.array(
+        [
+            root_scalar(
+                lambda M: area_mach(M, flows2[-1].fluid.gamma) - y_ / D_crit,
+                # The sign function selects solution branch according to starting flow
+                # and position relative to critical length
+                bracket=[1, 100 ** np.sign((1 - flows2[-1].mach) * (x_ - crit_x))],
+                method="brentq",
+            ).root
+            for x_, y_ in curve.T
+        ]
+    )
+    nozzles_flows[n, :] = np.array(
+        [
+            Flow.from_total_values(
+                p0_nozzle, mach, T0_nozzle, rho0_nozzle, flows2[-1].fluid
+            )
+            for mach in machs
+        ]
+    )

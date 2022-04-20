@@ -1,0 +1,7 @@
+Flow after heat addition: Flow(
+	Pressure: 1.802e+05
+	Mach: 0.3358
+	Temperature: 2.103e+03
+	Density: 0.2984
+	fluid: Fluid(R=287.058, gamma=1.4)
+)

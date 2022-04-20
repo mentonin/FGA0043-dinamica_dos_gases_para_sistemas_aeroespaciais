@@ -1,0 +1,21 @@
+# Calculates remaining Flow properties after heat addition
+# Equation (3.78) @anderson2021
+heated_pressure = (
+    flows2[-1].pressure
+    * (1 + flows2[-1].fluid.gamma * expanded_mach * expanded_mach)
+    / (1 + flows2[-1].fluid.gamma * heated_mach * heated_mach)
+)
+# Equation (3.79) @anderson2021
+heated_rho = (
+    flows2[-1].density
+    * heated_pressure
+    / flows2[-1].pressure
+    * expanded_temp
+    / heated_temp
+)
+
+# Appends new Flow to the list
+flows.append(
+    Flow(heated_pressure, heated_mach, heated_temp, heated_rho, flows2[-1].fluid)
+)
+print("Flow after heat addition:", flows[-1])

@@ -1,0 +1,18 @@
+def nShock_p0_eff(betas: tuple[float, ...], flow_in: Flow) -> float:
+    """
+    Calculates the total pressure efficiency in a diffuser with n-1 oblique and 1 normal
+    shockwaves.
+
+    Parameters:
+    betas: angles of the n-1 oblique shockwaves [rad]
+    flow_in: Flow object of the flown in the upstream
+
+    Returns:
+    Total pressure efficiency of the diffuser
+    """
+
+    flow_after = flow_in
+    for beta in betas:
+        flow_after = flow_after.shockwave(beta)
+    flow_after = flow_after.shockwave(np.pi / 2)
+    return flow_after.total_pressure / flow_in.total_pressure

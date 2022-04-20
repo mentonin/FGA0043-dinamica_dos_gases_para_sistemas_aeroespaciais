@@ -1,0 +1,272 @@
+\documentclass[12pt, openright, oneside, a4paper, english]{unbtex}
+
+
+\usepackage{luiz}
+\sisetup{
+    round-mode = figures,
+    round-precision = 4,
+    per-mode = symbol
+}
+
+\setminted{fontsize=\footnotesize}
+
+\usepackage{tikz}
+
+\usepackage[style=abnt,backref=true,justify,indent,uniquename=init,giveninits,maxbibnames=99,extrayear,repeatfields,noslsn]{biblatex}
+\usepackage{csquotes} % Necessário para o pacote biblatex funcionar
+
+
+
+\newcommand*\circled[1]{\tikz[baseline = (char.base)]{
+            \node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
+
+\newcommand{\Flow}{\texttt{Flow}}
+\newcommand{\scipy}{\texttt{SciPy}}
+
+
+\title{Gas Dynamics --- Work 1}
+\author{Luiz Georg \and 15/0041390}
+\date{\today}
+
+\graphicspath{{imgs/}}
+\addbibresource{_zotero.bib}
+
+\begin{document}
+\selectlanguage{english}
+\frenchspacing
+\maketitle
+
+
+\chapter{Part 1}
+\label{sec:part1}
+
+\section{Initial Values}
+
+The freestream properties at \SI{18}{\km} and Mach 3, as taken from website AeroToolbox (\url{https://aerotoolbox.com/atmcalc/}), are:
+
+\begin{table}[htbp]
+    \caption{Freestream flow properties.}
+    \label{tab:freestream}
+    \centering
+    \begin{tabular}{cl}
+        \toprule
+        {\thead{Property}} & {\thead{Value}}                   \\
+        \midrule
+        \(P\)              & \SI{7505}{\pascal}                \\
+        \(M\)              & \SI{3.0}{}                        \\
+        \(T\)              & \SI{216.65}{\kelvin}              \\
+        \(\rho\)           & \SI{0.12068}{\kg\per\meter\cubed} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Equation system}
+
+The flow across the planar 3-shockwave diffuser is assumed to be constant in the control volumes \circled{\(\infty\)}, \circled{\(1\)}, and \circled{\(2\)}. Inside control volume \circled{\(3\)}, the flow is subsonic and isentropic, but we are only interested in the values imediately after the shockwave, so we will not calculate the changes inside this volume.
+
+Across the region boundaries, the flow goes through shockwaves. The flow after a shockwave can be calculated from the flow before the shockwave according to \crefrange{eq:shock_0}{eq:shock_1}~\cite{anderson2017}, where the properties before and after the shock are represented by the subscripts \(1\) and \(2\), respectively. The right side of these equations depend only on the Mach number before the shockwave \(M_1\) and the shockwave angle \(\beta\). Alternatively, we can calculate \(\beta\) from \(\theta\), but that would lead to costlier calculations.
+
+\begin{align}
+    \label{eq:shock_0}
+    M_{n,1}               & = M_1 \sin\beta
+    \\
+    {M_{n,2}}^2           & = \frac{
+        1 + \frac{\gamma - 1}{2} {M_{n,1}}^2
+    }{
+        \gamma {M_{n,1}}^2 - \frac{\gamma - 1}{2}
+    }
+    \\
+    \frac{\rho_2}{\rho_1} & = \frac{ (\gamma + 1) {M_{n,1}}^2 }{ 2 + (\gamma + 1) {M_{n,1}}^2 }
+    \\
+    \frac{p_2}{p_1}       & = 1 + \frac{2}{\gamma + 1} ( {M_{n,1}}^2 - 1 )
+    \\
+    \frac{T_2}{T_1}       & = \frac{p_2}{p_1} \frac{\rho_1}{\rho_2}
+    \\
+    M_2                   & = \frac{M_{n,2}}{\sin(\beta - \theta)}
+    \\
+    \label{eq:shock_1}
+    \tan\theta            & = 2 \cot\beta \frac{ {M_1}^2\sin^2\beta - 1 }{ {M_1}^2 (\gamma + \cos(2\beta)) + 2 }
+\end{align}
+
+We are also interested in the total properties (represented with subscript \(0\)) and in the sonic speed \(a\). In any point of the flow, they can be calculated from the static properties using \crefrange{eq:static_0}{eq:static_1}~\cite{anderson2017}.
+
+\begin{align}
+    \label{eq:static_0}
+    \frac{T_0}{T}       & = 1 + \frac{\gamma - 1}{2}M^2
+    \\
+    \frac{p_0}{p}       & = \left( 1 + \frac{\gamma - 1}{2}M^2 \right) ^ {\frac{\gamma}{\gamma - 1}}
+    \\
+    \frac{\rho_0}{\rho} & = \left( 1 + \frac{\gamma - 1}{2}M^2 \right) ^ {\frac{1}{\gamma - 1}}
+    \\
+    \label{eq:static_1}
+    a                   & = \sqrt{\gamma R T}
+\end{align}
+
+Using these equations, we can calculate the values of the flow properties at each control volume for given freestream properties and shockwave angles. Then, the efficiency function for an 3-shockwave diffuser is simply \({P_0}_3 / {P_0}_\infty = \operatorname{f}(M_\infty,\, \beta_2,\, \beta_2)\). This function can be calculated easily by repeated application of the shockwave equations, and a descent algorithm can be used to fing the local maximum.
+
+
+\section{Optimization}
+
+Finding the optimal diffuser is equivalent to finding the global maximum of the efficiency function \(\operatorname{\eta}(\beta_1, \beta_2)\). A script, shown in full in \cref{sec:script}, was used to find the optimal diffuser angles, and some important parts of the code will be discussed here.
+
+The script uses a class, called \Flow, to represent flow state. This class implements total/static properties conversions, and also a shockwave method. The shockwave method is shown in \cref{lst:shockwave}, though the actual implementation is a class method, not a plain function.
+
+\begin{splitcode}[label=lst:shockwave, breakable]{Shockwave function}[]
+    \inputminted{python}{listings/shockwave}
+\end{splitcode}
+
+Using the \Flow\ class, we can create a function that calculates the total pressure efficiency \(\eta(M_\infty,\, \beta_1,\, \beta_2)\). In fact, the function is easily generalized to n-shockwave diffusers, so the general version was implemented. The implementation used in the script is shown in \cref{lst:efficiency}.
+
+\begin{splitcode}[label=lst:efficiency]{Total Pressure efficiency in an n-shockwave diffuser}[]
+    \inputminted{python}{listings/nShock_p0_eff}
+\end{splitcode}
+
+Finally, the script uses the \scipy\ module to implement the optimization algorithm. The algorithm implements minimization on a scalar function of n-dimensional inputs, i.e. it finds a local minimum. Since we want the local maximum, the optimized function was the total pressure loss \(1-\eta\), instead of the efficiency \(\eta\). The optimization method chosen takes a initial guess, which was chosen to be just above the minimum \(\beta\) angles to ensure existence. The implementation is shown in \cref{lst:optimize}.
+
+\begin{splitcode}[label=lst:optimize]{Optimization algorithm}[]
+    \inputminted{python}{listings/optimize}
+    \tcblower
+    \inputminted{output}{listings/optimize.o}
+\end{splitcode}
+
+To investigate wether our optimization was correct and if the maximum is global, we can plot coarse contour graph of \(\eta\), shown in \cref{fig:eta_contour}. As can be seen, the maximum does appear to be correct and global.
+
+We can then use our solution to extract the values we want, i.e. the optimal diffuser angles and the optimal flow properties in each control volume. This is implemented in \cref{lst:diffuser_results}, along with some assertions, using the \Flow\ class methods.
+
+\begin{splitcode}[label=lst:diffuser_results]{Extracting the optimal diffuser angles and flow properties}[]
+    \inputminted{python}{listings/diffuser_results}
+    \tcblower
+    \inputminted{output}{listings/diffuser_results.o}
+\end{splitcode}
+
+\boxfigure[label=fig:eta_contour, width=0.6\textwidth]{Contour plot of \(\eta\) function.}{gradient}
+
+Then, we can plot the properties over each region. To better visualize relative changes in magnitude, we compared Pressure, Mach number, Temperature, Density, and Velocity in the \cref{fig:diffuser_properties}. For easier lookup, the properties were also tabulated in \cref{tab:diffuser_properties}.
+
+\boxfigure[label=fig:diffuser_properties, width=\textwidth]{Properties in each control volume.}{diffuser_properties}
+
+\begin{table}[htbp]
+    \caption{Flow Properties in the 3-shockwave diffuser}
+    \label{tab:diffuser_properties}
+    \centering
+    \
+    \footnotesize
+    \begin{tabular}{cSSSSS}
+        \toprule
+        {\thead{Region}}       & {\thead{Pressure [\si{\pascal}]}} & {\thead{Mach Number}} & {\thead{Temperature [\si{\kelvin}]}} & {\thead{Density [\si{\kilogram\per\meter\cubed}]}} & {\thead{Velocity [\si{\meter\per\second}]}} \\
+        \midrule
+        {\circled{\(\infty\)}} & 7505                              & 3                     & 216.65                               & 0.12068                                            & 885.22                                      \\
+        {\circled{\(1\)}}      & 21146                             & 2.2561                & 300.61                               & 0.24506                                            & 784.16                                      \\
+        {\circled{\(2\)}}      & 59588                             & 1.5072                & 417.12                               & 0.49767                                            & 617.08                                      \\
+        {\circled{\(3\)}}      & 147990                            & 0.69857               & 552.68                               & 0.9328                                             & 329.23                                      \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Optimal Geometry}
+
+With the optimal angles, the geometry is still under-determined. The external wall size, \(D\) can be scaled arbitrarily, and will be set as unitary for a geometry generalization. Scaling this value will scale the geometry uniformly. For the walls to normal shockwave to form adequately, both the inner and outer wall must be (nearly) tangent to the flow in the normal shockwave vicinity. Additionaly, a constraint is put in place such that the outer wall ends in a horizontal direction, finishing the rotation of the flow.
+
+The wedge walls can still be scaled (up to a limit) inside these constraints, changing the geometry of entry to the diffuser. To constrain this geometry, the cross-sectional length of the normal shockwave was set to \(D_e = 0.3 D\).
+
+Lastly, the internal length \(D_{\operatorname{int}}\) is also arbitrary. \textcite{oswatitsch1944} and~\cite{hermann1956} show some restrictions to the throat formed here, but not a conclusive answer to its value. The critical value (where the normal shockwave happens right at the entrance) depends on the geometry further down the flow. Thus, as an initial approximation, the \(D_{\operatorname{int}}\) was set such that the diffuser exit length is equal to \(D_o = 0.9 D_e\).
+
+The final geometry, then, was modeled on the CAD Software Fusion 360, and shown in \cref{fig:geometry}.
+
+\boxfigure[label=fig:geometry, width=\textwidth]{Geometry of the 3-shockwave diffuser.}{geometry}
+
+\chapter{Part 2}
+
+The flow inside the ramjet motor can be divided into 3 parts: Expansion, Heat Addition, and Nozzle.
+
+\section{Expansion}
+\label{sec:expansion}
+
+Quasi--one-dimensional, isentropic expansion follows the Area--Mach Number relationship (\cref{eq:area-mach}). Even though a sonic throat is not present, the relationship still stands, and the Mach Number anywhere in the flow can be calculated from the area ratio with a point with known properties. In our case, the point with known properties will be the entrance right after the normal shockwave from \cref{sec:part1}. The area in the entrance is \(D_e\), and the area after expansion is \(D\).
+
+\begin{align}
+    \label{eq:area-mach}
+    \left( \frac{A}{A^*} \right)^2 = \frac{1}{M^2} \left[ \frac{2}{\gamma + 1} \left( 1 + \frac{\gamma - 1}{2} M^2 \right) \right]^{\frac{\gamma+1}{\gamma-1}}
+\end{align}
+
+To calculate the Mach Number, we can find \(A^*\) and numerically solve \cref{eq:area-mach} for \(A = D\). Thus, the implementation in the script can be reduced to the Area--Mach Number relationship implemented in \cref{lst:area-mach} and the root search implemented in \cref{lst:mach_4}. Details of the implementation can be found in \cref{sec:script}.
+
+\begin{splitcode}[label=lst:area-mach]{Area--Mach Number relationship function}[]
+    \inputminted{python}{listings/area-mach}
+\end{splitcode}
+
+\begin{splitcode}[label=lst:mach_4]{Finding Mach number after expansion}[]
+    \inputminted{python}{listings/mach_4}
+    \tcblower
+    \inputminted{output}{listings/mach_4.o}
+\end{splitcode}
+
+\section{Heat Addition}
+
+The temperature variation \(\Delta T\) will be considered as a change in static temperature. \Cref{eq:heat} gives the relationship between Mach Number and static temperature~\cite{anderson2021}. Since we know the temperature before and after heat addition, the new Mach Number can be found by solving this equation.
+
+When the new Mach Number is known, the new pressure and density can be calculated using \cref{eq:heat_pressure,eq:heat_density}~\cite{anderson2021}. Thus, the flow after heat addition is completely defined.
+
+\begin{align}
+    \label{eq:heat}
+    \frac{T_2}{T_1}       & = \left( \frac{1 + \gamma {M_1}^2}{\gamma {M_2}^2} \right)^2
+    \left( \frac{{M_2}^2}{{M_1}^2} \right)
+    \\
+    \label{eq:heat_pressure}
+    \frac{p_2}{p_1}       & = \frac{1 + \gamma {M_1}^2}{1 + \gamma {M_2}^2}
+    \\
+    \label{eq:heat_density}
+    \frac{\rho_2}{\rho_1} & = \frac{p_2}{p_1} \frac{T_1}{T_2}
+\end{align}
+
+Using \cref{eq:heat} the script can find the new Mach number as shown in \cref{lst:heat}, while the pressure and density were calculated as shown in \cref{lst:heat_after}, yielding a complete Flow object.
+
+\begin{splitcode}[label=lst:heat]{Finding Mach number after heat addition}[]
+    \inputminted{python}{listings/heat}
+    \tcblower
+    \inputminted{output}{listings/heat.o}
+\end{splitcode}
+
+\begin{splitcode}[label=lst:heat_after]{Finding flow properties after heat addition}[]
+    \inputminted{python}{listings/heat_after}
+    \tcblower
+    \inputminted{output}{listings/heat_after.o}
+\end{splitcode}
+
+
+\section{Nozzle}
+
+Just as in \cref{sec:expansion}, the nozzle is a quasi-one-dimensional flow. The nozzle is defined by the area ratio, and the Mach Number. Using \cref{eq:area-mach}, one can find the critical throat area, implemented in the script as shown in \cref{lst:nozzle_throat}.
+
+\begin{splitcode}[label=lst:nozzle_throat]{Finding the throat area}[]
+    \inputminted{python}{listings/nozzle_throat}
+    \tcblower
+    \inputminted{output}{listings/nozzle_throat.o}
+\end{splitcode}
+
+With the nozzle throat area \(D_t\) known, the geometry of the nozzle is fully determined. The two nozzle shapes under study are shown in \cref{fig:nozzle_shapes}.
+
+\boxfigure[label=fig:nozzle_shapes, width=0.7\textwidth]{Nozzle shapes.}{nozzle_shapes}
+
+The walls for each shape were implemented as functions, and flow properties were calculated using \cref{eq:area-mach} and \cref{eq:static_0,eq:static_1}. The code implementing this calculation is shown in \cref{lst:nozzle_calc}.
+
+\begin{splitcode}[label=lst:nozzle_calc]{Calculating flow properties in the nozzle}[]
+    \inputminted{python}{listings/nozzle_calc}
+\end{splitcode}
+
+Some flow properties were calculated and plotted in \cref{fig:nozzle_plot}, where one can compare their relative changes as well as the differences between the two nozzle shapes.
+
+\boxfigure[label=fig:nozzle_plot, width=\textwidth]{Flow properties in the nozzle. Dotted lines represent the Bell shaped nozzle, while solid lines represent the wedge shaped nozzle.}{nozzle_plot}
+
+
+Finally, the full ramjet design sketch can be seen in \cref{fig:full_geometry}. Some dimensions remained unconstrained (namely the length of the expansion region and of the combustion chamber), and were set to \(D\).
+
+\boxfigure[label=fig:full_geometry, width=\textwidth]{Complete geometry of the ramjet.}{full_geometry}
+
+
+\begin{apendicesenv}
+    \chapter{Source Code}
+    \label{sec:script}
+    \inputminted[breaklines, linenos]{python}{listings/script.py}
+\end{apendicesenv}
+\end{document}
